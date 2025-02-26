@@ -2,9 +2,9 @@
 
 import argparse
 import re
-# import cairo
+import cairo
 
-# Global variables
+# GLOBAL VARIABLES
 ambig_nts = {
     "R": "(A|G)",
     "K": "(G|T)",
@@ -19,7 +19,7 @@ ambig_nts = {
     "N": "(A|T|C|G)"}
 
 
-# Argument/file parsers
+# ARGUMENT/FILE PARSERS
 def get_args():
     parser = argparse.ArgumentParser(description="Visualize motifs on sequences.")
     parser.add_argument("-f", "--file", help="Designates absolute file path to fasta file", type=str, required=True)
@@ -32,6 +32,7 @@ def fasta_parser(infile:str) -> list:
     index = ''
     read = ''
     first_line = True
+    # parse file
     with open(infile, "r") as rf:
         for line in rf:
             line = line.strip("\n")
@@ -40,11 +41,14 @@ def fasta_parser(infile:str) -> list:
                     index = line
                     first_line = False
                 else:
-                    record = Record(index, read)
+                    record = Gene(index, read)
                     record_list.append(record)
                     index = line
+                    read = ''
             else:
                 read += line
+    record = Gene(index, read)
+    record_list.append(record)
     return record_list
 
 def motif_parser(infile:str) -> list:
@@ -80,31 +84,86 @@ def motif_regex(motif:str) -> re.Pattern:
             regex_str += ambig_nts[char]
     return re.compile(regex_str)
 
-def gene_splitter(read: str) -> list, list:
-    '''Given a read, splits into a list of introns and exons.'''
+def gene_splitter(read: str) -> list:
+    '''Given a read, splits into a list of features.'''
     # look into re.split for capitals split
-    pass
+    features = []
+    working_intron = ''
+    working_exon = ''
+    caps = read[0].isupper()
+    for i, char in enumerate(read):
+        # if the character has become upper when the previous was lower, add working_intron to features
+        if char.isupper() and caps == False:
+            features.append(Feature(working_intron, False))
+            working_intron = ''
+            caps = True
+        # if the character has become lower when the previous was upper, add working_exon to features
+        elif char.islower() and caps == True:
+            features.append(Feature(working_exon, True))
+            working_exon = ''
+            caps = False
+        # Exon
+        if caps:
+            working_exon += char
+        # Intron
+        else:
+            working_intron += char
+    # add last exon/intron
+    if working_intron == '':
+        features.append(Feature(working_exon, True))
+    else:
+        features.append(Feature(working_intron, False))
+    return features
+
 
 # CLASSES
-class Record:
-    def __init__(self, index, read):
+class Gene:
+    '''A Gene object. A gene has an index, Features (introns and exons), and a length of the total gene.'''
+    def __init__(self, index, seq):
+        '''Pass an index (fasta header or name) and a sequence that is split into a list of Feature objects based on capitalization of the sequence.'''
         self.index = index
-        self.read = read
-        self.revcomp = revcomp(read)
-        self.length = len(read)
-        
-        self.introns = []
-        self.exons = []
+        self.length = int(len(seq))
+        self.features = gene_splitter(seq)
+    
+    def __str__(self):
+        '''Print magic method. Returns just the index.'''
+        return f"{self.index}"
+    
+    def __len__(self):
+        '''Length magic method. Returns length of the entire gene, introns and exons.'''
+        return self.length
+
+    def count(self):
+        '''Returns integer count of features (introns or exons).'''
+        return len(self.features)
+
+    def draw(self, surface):
+        '''Given a top-left point, draws a rectangle and line.'''
+        print(self.length)
+
+
+class Feature:
+    '''A Feature object. A feature is either an exon (exon == True) or an intron (exon == False).'''
+    def __init__(self, seq, exon):
+        self.seq = seq
+        self.revcomp = revcomp(seq)
+        self.length = int(len(seq))
+        self.exon = exon
     
     def __str__(self):
         '''Print magic method.'''
-        return f"{self.index}\n{self.read}"
-    
+        return self.seq
+
     def __len__(self):
+        '''Length magic method.'''
         return self.length
 
+    def is_exon(self):
+        '''Returns True if feature is an exon.'''
+        return self.exon
+
 class Motif:
-    '''TODO'''
+    '''A Motif object.'''
     def __init__(self, motif):
         '''From passing the motif string, finds attributes length and regex.'''
         self.motif = motif
@@ -124,7 +183,22 @@ args = get_args()
 records = fasta_parser(args.file)
 motifs = motif_parser(args.motifs)
 
+testgene = records[0]
+print(testgene)
 
+# draw
+with cairo.PDFSurface("motif-mark.pdf", 1000, 1000) as surface:
+    # Set context
+    context = cairo.Context(surface)
+    context.scale(1000,1000)
+    context.set_line_width(0.01)
+
+    # Make a rectangle for a gene
+    print("TESTING DRAW:")
+    testgene.draw(surface)
+
+
+    
 
 
 
