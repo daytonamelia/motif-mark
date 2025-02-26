@@ -18,7 +18,11 @@ ambig_nts = {
     "V": "[^T]",
     "N": "(A|T|C|G)"}
 
+MARGIN = 10
+SPACING = 10
 DRAW_HEIGHT = 5
+FONT_SIZE = 5
+FONT_FACE = "Arial"
 
 # ARGUMENT/FILE PARSERS
 def get_args():
@@ -138,28 +142,31 @@ class Gene:
         '''Returns integer count of features (introns or exons).'''
         return len(self.features)
 
-    def draw_features(self, surface: cairo.Surface, x: int, y: int):
+    def draw_features(self, surface: cairo.Surface, surface_x: int, surface_y: int):
         '''Given a top-left point, draws a rectangle and line.'''
+        # Context and variables
         context = cairo.Context(surface)
         context.set_line_width(1)
-        curr_x = x
-        curr_y = y
-        # Draw features
+        curr_x = surface_x
+        curr_y = surface_y
+        # Write the index
+        context.set_font_size(FONT_SIZE)
+        context.select_font_face(FONT_FACE)
+        context.move_to(curr_x, curr_y) # x,y
+        context.show_text(self.index)
+        context.stroke()
+        curr_y += FONT_SIZE
+        # Draw the features
         for feature in self.features:
-            if feature.is_exon():
-                # x,y,width,height 
-                context.rectangle(curr_x, curr_y, len(feature), y + DRAW_HEIGHT)
+            if feature.is_exon(): # draw exons 
+                context.rectangle(curr_x, curr_y, len(feature), DRAW_HEIGHT * 2) # x,y,width,height
                 context.fill()
                 curr_x += len(feature)
-            else:
-                # x,y -> x,y
-                context.move_to(curr_x, curr_y + DRAW_HEIGHT)
-                context.line_to(curr_x + len(feature), curr_y + DRAW_HEIGHT)
+            else:  # draw introns
+                context.move_to(curr_x, curr_y + DRAW_HEIGHT) # x,y
+                context.line_to(curr_x + len(feature), curr_y + DRAW_HEIGHT) #x,y
                 context.stroke()
                 curr_x += len(feature)
-
-
-
 
 
 class Feature:
@@ -204,14 +211,18 @@ args = get_args()
 records = fasta_parser(args.file)
 motifs = motif_parser(args.motifs)
 
-testgene = records[0]
-print(testgene)
+testfeature = records[0]
 
-# draw
-with cairo.PDFSurface("motif-mark.pdf", 1010, 100) as surface:
-    # Make a rectangle for a gene
-    print("TESTING DRAW:")
-    testgene.draw_features(surface, 5, 5)
+
+# Draw features
+with cairo.PDFSurface("motif-mark.pdf", 1010, 150) as surface:
+    # 
+    surface_x = MARGIN
+    surface_y = MARGIN
+    # Draw genes
+    for feature in records:
+        feature.draw_features(surface, surface_x, surface_y)
+        surface_y += FONT_SIZE + DRAW_HEIGHT + MARGIN + SPACING
 
 
     
