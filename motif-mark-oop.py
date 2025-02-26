@@ -18,8 +18,7 @@ ambig_nts = {
     "V": "[^T]",
     "N": "(A|T|C|G)"}
 
-EXON_HEIGHT = 10
-INTRON_HEIGHT = EXON_HEIGHT / 2
+DRAW_HEIGHT = 5
 
 # ARGUMENT/FILE PARSERS
 def get_args():
@@ -139,25 +138,25 @@ class Gene:
         '''Returns integer count of features (introns or exons).'''
         return len(self.features)
 
-    def draw_features(self, surface: cairo.Surface, surface_x: int, surface_y: int, x: int, y: int):
+    def draw_features(self, surface: cairo.Surface, x: int, y: int):
         '''Given a top-left point, draws a rectangle and line.'''
-        print(self.length)
         context = cairo.Context(surface)
-        context.set_line_width(0.1)
+        context.set_line_width(1)
         curr_x = x
         curr_y = y
+        # Draw features
         for feature in self.features:
             if feature.is_exon():
                 # x,y,width,height 
-                context.rectangle(curr_x, curr_y, len(feature), curr_y + EXON_HEIGHT)
-                context.stroke()
-                curr_x = len(feature)
+                context.rectangle(curr_x, curr_y, len(feature), y + DRAW_HEIGHT)
+                context.fill()
+                curr_x += len(feature)
             else:
                 # x,y -> x,y
-                context.move_to(curr_x, curr_y - INTRON_HEIGHT)
-                context.line_to(len(feature), curr_y - INTRON_HEIGHT)
+                context.move_to(curr_x, curr_y + DRAW_HEIGHT)
+                context.line_to(curr_x + len(feature), curr_y + DRAW_HEIGHT)
                 context.stroke()
-                curr_x = len(feature)
+                curr_x += len(feature)
 
 
 
@@ -209,14 +208,10 @@ testgene = records[0]
 print(testgene)
 
 # draw
-with cairo.PDFSurface("motif-mark.pdf", 100, 100) as surface:
-    # Set context
-    context = cairo.Context(surface)
-    context.scale(100,100)
-
+with cairo.PDFSurface("motif-mark.pdf", 1010, 100) as surface:
     # Make a rectangle for a gene
     print("TESTING DRAW:")
-    testgene.draw_features(surface, 100, 100, 0, 50)
+    testgene.draw_features(surface, 5, 5)
 
 
     
