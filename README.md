@@ -1,2 +1,3 @@
 # motif-mark
-Motif Mark assignment for BI625
+Usage:
+`motif-mark-oop.py [-h] -f FASTA -m MOTIF`
