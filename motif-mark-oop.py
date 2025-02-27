@@ -235,7 +235,7 @@ records = fasta_parser(args.file)
 motifs = motif_parser(args.motifs)
 
 # Draw features
-with cairo.PDFSurface("motif-mark.pdf", 1010, 40 * len(records) + 35) as surface:
+with cairo.PDFSurface("motif-mark.pdf", 1010, 40 * len(records) + 45) as surface:
     # Context variables and surface coordinates setup
     surface_x = MARGIN
     surface_y = MARGIN
