@@ -91,6 +91,16 @@ def revcomp(DNA:str) -> str:
     DNAtable = str.maketrans("ATCG", "TAGC")
     return DNA[::-1].translate(DNAtable)
 
+def motif_finder(read:str, motif) -> dict:
+    '''Given a read and a motif present in the read, returns a dictionary of index-positions as keys and Motif objects as values.
+    Otherwise returns None.'''
+    motifs = {}
+    matches = motif.regex.finditer(read.seq.upper())
+    for match in matches:
+        motifs[match.start()] = motif
+    if len(motifs) > 0:
+        return motifs
+
 
 # COMPLEX FUNCTIONS
 def motif_regex(motif:str) -> re.Pattern:
@@ -139,12 +149,7 @@ def gene_splitter(read: str) -> list:
     else:
         features.append(Feature(switch_pos, intron_len, False))
     return features
-
-def motif_finder(read:str, motif) -> dict:
-    '''Given a read and a motif, returns a dictionary of index-positions as keys and Motif objects as values.'''
-    print(read)
-    print(motif)
-
+    
 
 # CLASSES
 class Gene:
@@ -156,6 +161,7 @@ class Gene:
         self.revcomp = revcomp(seq)
         self.length = int(len(seq))
         self.features = gene_splitter(seq)
+        self.motifs = {}
     
     def __str__(self) -> str:
         '''Print magic method. Returns just the index.'''
@@ -195,6 +201,12 @@ class Gene:
                 context.stroke()
                 curr_x += len(feature)
 
+    def add_motifs(self, motifs: dict) -> None:
+        self.motifs.update(motifs)
+    
+    def find_overlap(self) -> None:
+        # TODO
+        pass
 
 class Feature:
     '''A Feature object. A feature is either an exon (exon == True) or an intron (exon == False) with a length and start position.'''
@@ -232,8 +244,6 @@ class Motif:
         '''Length magic method.'''
         return self.length
 
-        self.color = color
-
 
 def main() -> None:
     # Set up and parsing
@@ -242,14 +252,12 @@ def main() -> None:
     motifs = motif_parser(args.motifs)
     outfile = args.file.split(".")[0]
 
-    # for record in records:
-    #     print(record)
-    #     for feature in record.features:
-    #         print(feature)
-
     # Find motifs in each record
-    testrecord = records[0]
-    testmotif = motifs[0]
+    for motif in motifs:
+        for record in records:
+            found_motifs = motif_finder(record, motif)
+            if found_motifs is not None:
+                record.add_motifs(found_motifs)
 
     # total surface should be space for the motif legend and space for each record
     motiflegend_space = int(len(motifs) * (FONT_SIZE*2 + SPACING/2))
