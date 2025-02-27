@@ -85,24 +85,12 @@ def motif_parser(infile:str) -> list:
     return motif_list
 
 
-# SIMPLE FUNCTIONS
+# FUNCTIONS
 def revcomp(DNA:str) -> str:
     '''Returns the reverse complement of a DNA sequence.'''
     DNAtable = str.maketrans("ATCG", "TAGC")
     return DNA[::-1].translate(DNAtable)
 
-def motif_finder(read:str, motif) -> dict:
-    '''Given a read and a motif present in the read, returns a dictionary of index-positions as keys and Motif objects as values.
-    Otherwise returns None.'''
-    motifs = {}
-    matches = motif.regex.finditer(read.seq.upper())
-    for match in matches:
-        motifs[match.start()] = motif
-    if len(motifs) > 0:
-        return motifs
-
-
-# COMPLEX FUNCTIONS
 def motif_regex(motif:str) -> re.Pattern:
     '''Given a motif string, transform into a regex object. Requires the python re module.'''
     regex_str = ''
@@ -150,6 +138,16 @@ def gene_splitter(read: str) -> list:
         features.append(Feature(switch_pos, intron_len, False))
     return features
     
+def motif_finder(read:str, motif) -> dict:
+    '''Given a read and a motif present in the read, returns a dictionary of index-positions as keys and Motif objects as values.
+    Otherwise returns None.'''
+    motifs = {}
+    matches = motif.regex.finditer(read.seq.upper())
+    for match in matches:
+        motifs[match.start()] = motif
+    if len(motifs) > 0:
+        return motifs
+
 
 # CLASSES
 class Gene:
@@ -171,10 +169,23 @@ class Gene:
         '''Length magic method. Returns length of the entire gene, introns and exons.'''
         return self.length
 
-    def count(self) -> int:
-        '''Returns integer count of features (introns or exons).'''
-        return len(self.features)
-
+    def add_motifs(self, motifs: dict) -> None:
+        '''Updates motifs dictionary with new motifs.'''
+        self.motifs.update(motifs)
+    
+    def find_overlap(self) -> None:
+        '''Finds overlapping motifs for simplifying drawing.'''
+        overlaps = []
+        for pos1, motif in self.motifs.items():
+            for pos2, motif2 in self.motifs.items():
+                # exact same
+                if pos1 == pos2 and motif == motif2:
+                    continue
+                # actual overlap
+                if pos1 <= pos2 and pos2 <= pos1 + motif.length:
+                    overlaps.append(((pos1,motif),(pos2,motif2)))
+        self.overlaps = overlaps
+        
     def draw_features(self, surface: cairo.Surface, surface_x: int, surface_y: int) -> None:
         '''Given a top-left point, writes the index, then draws a rectangle and line.'''
         # Context and variables
@@ -201,13 +212,6 @@ class Gene:
                 context.stroke()
                 curr_x += len(feature)
 
-    def add_motifs(self, motifs: dict) -> None:
-        self.motifs.update(motifs)
-    
-    def find_overlap(self) -> None:
-        # TODO
-        pass
-
 class Feature:
     '''A Feature object. A feature is either an exon (exon == True) or an intron (exon == False) with a length and start position.'''
     def __init__(self, start, length, exon) -> None:
@@ -225,7 +229,6 @@ class Feature:
     def is_exon(self) -> bool:
         '''Returns True if feature is an exon.'''
         return self.exon
-
 
 class Motif:
     '''A Motif object, with a motif, a regex pattern, and a color for drawing.'''
@@ -252,15 +255,17 @@ def main() -> None:
     motifs = motif_parser(args.motifs)
     outfile = args.file.split(".")[0]
 
-    # Find motifs in each record
+    # Find motifs and motif overlap in each record
     for record in records:
+        # Find motifs
         for motif in motifs:
             found_motifs = motif_finder(record, motif)
             if found_motifs is not None:
                 record.add_motifs(found_motifs)
+        # Find motif overlap
+        record.find_overlap()
         
-
-    # total surface should be space for the motif legend and space for each record
+    # Total surface need space for the motif legend and space for each record
     motiflegend_space = int(len(motifs) * (FONT_SIZE*2 + SPACING/2))
     features_space = int(len(records) * (FONT_SIZE + DRAW_HEIGHT + MARGIN + SPACING))
     totalsurface_y = motiflegend_space + features_space
@@ -296,6 +301,7 @@ def main() -> None:
         for feature in records:
             feature.draw_features(surface, surface_x, surface_y)
             surface_y += FONT_SIZE + DRAW_HEIGHT + MARGIN + SPACING
+        # Draw motifs
 
 
 if __name__ == "__main__":
