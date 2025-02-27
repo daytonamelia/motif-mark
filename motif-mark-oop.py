@@ -40,7 +40,7 @@ SPACING = 10
 DRAW_HEIGHT = 10
 FONT_SIZE = 5
 FONT_FACE = "Arial"
-OVERLAP = 5
+OVERLAP = 0
 
 # ARGUMENT/FILE PARSERS
 def get_args():
@@ -223,16 +223,22 @@ class Gene:
                 context.stroke()
                 curr_x += len(feature)
         # Draw motifs
-        print(self.overlaps)
         for position, motif in self.motifs.items():
-            overlapped = False
+            no_overlaps = True
             # If gene has motif overlaps, check for them
             if self.overlaps != []:
                 for overlap in self.overlaps:
-                    if position == overlap[0][0] or position == overlap[1][0]:
-                        overlapped = True
+                    if position == overlap[0][0]:
+                        no_overlaps = False
+                        context.set_source_rgb(motif.color[0]/255, motif.color[1]/255, motif.color[2]/255)
+                        context.rectangle(position+surface_x, curr_y, motif.length, DRAW_HEIGHT-0.5)
                         break
-            if not overlapped:
+                    if position == overlap[1][0]:
+                        no_overlaps = False
+                        context.set_source_rgb(motif.color[0]/255, motif.color[1]/255, motif.color[2]/255)
+                        context.rectangle(position+surface_x, curr_y+DRAW_HEIGHT+0.5, motif.length, DRAW_HEIGHT)
+                        break
+            if no_overlaps:
                 context.set_source_rgb(motif.color[0]/255, motif.color[1]/255, motif.color[2]/255)
                 context.rectangle(position+surface_x, curr_y, motif.length, DRAW_HEIGHT-0.5)
                 context.fill()
@@ -298,12 +304,17 @@ def main() -> None:
     totalsurface_y = motiflegend_space + features_space
 
     # Draw features
-    with cairo.PDFSurface(f"{outfile}.pdf", 1010, totalsurface_y) as surface:
+    with cairo.ImageSurface(cairo.FORMAT_ARGB32, 1010, totalsurface_y) as surface:
         # Context variables and surface coordinates setup
         surface_x = MARGIN
         surface_y = MARGIN
         context = cairo.Context(surface)
+        # Make white background
+        context.set_source_rgb(1,1,1)
+        context.rectangle(0,0,1010, totalsurface_y)
+        context.fill()
         # Make legend colors and text
+        context.set_source_rgba(255,255,255)
         context.set_font_size(FONT_SIZE)
         context.select_font_face(FONT_FACE)
         for motif in motifs:
@@ -326,11 +337,10 @@ def main() -> None:
         surface_y += SPACING
         # Draw features and motifs
         for feature in records:
-            print('\n')
-            print(feature)
             feature.draw(surface, surface_x, surface_y)
             surface_y += FONT_SIZE + DRAW_HEIGHT + MARGIN + SPACING
-
+        surface.write_to_png(f"{outfile}.png")
+        surface.finish()
 
 if __name__ == "__main__":
     main()
