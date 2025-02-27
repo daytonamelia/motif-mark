@@ -108,7 +108,7 @@ def motif_regex(motif:str) -> re.Pattern:
     return re.compile(regex_str)
 
 def gene_splitter(read: str) -> list:
-    '''Given a read, splits into a list of features.'''
+    '''Given a read of exons and introns, splits into a list of features based on capitalization patterns.'''
     # look into re.split for capitals split
     features = []
     working_intron = ''
@@ -138,14 +138,18 @@ def gene_splitter(read: str) -> list:
         features.append(Feature(working_intron, False))
     return features
 
+def motif_finder(read:str, motif) -> dict:
+    '''Given a read and a motif, returns a dictionary of index-positions as keys and Motif objects as values.'''
+    print(read)
+    print(motif)
+
 
 # CLASSES
 class Gene:
-    '''A Gene object. A gene has an index, Features (introns and exons), and a length of the total gene.'''
+    '''A Gene object. A gene has an index, Features (introns and exons), Motifs, and a length of the total gene.'''
     def __init__(self, index, seq) -> None:
         '''Pass an index (fasta header or name) and a sequence that is split into a list of Feature objects based on capitalization of the sequence.'''
         self.index = index
-        self.seq = seq
         self.length = int(len(seq))
         self.features = gene_splitter(seq)
     
@@ -161,7 +165,7 @@ class Gene:
         '''Returns integer count of features (introns or exons).'''
         return len(self.features)
 
-    def draw_features(self, surface: cairo.Surface, surface_x: int, surface_y: int):
+    def draw_features(self, surface: cairo.Surface, surface_x: int, surface_y: int) -> None:
         '''Given a top-left point, writes the index, then draws a rectangle and line.'''
         # Context and variables
         context = cairo.Context(surface)
@@ -212,7 +216,7 @@ class Feature:
 class Motif:
     '''A Motif object, with a motif, a regex pattern, and a color for drawing.'''
     def __init__(self, motif, color) -> None:
-        '''From passing the motif string, finds attributes length and regex.'''
+        '''From passing the motif string, finds length and regex.'''
         self.motif = motif
         self.length = len(motif)
         self.regex = motif_regex(motif)
@@ -229,43 +233,57 @@ class Motif:
         self.color = color
 
 
-# Set up and parsing
-args = get_args()
-records = fasta_parser(args.file)
-motifs = motif_parser(args.motifs)
+def main() -> None:
+    # Set up and parsing
+    args = get_args()
+    records = fasta_parser(args.file)
+    motifs = motif_parser(args.motifs)
+    outfile = args.file.split(".")[0]
 
-# Draw features
-with cairo.PDFSurface("motif-mark.pdf", 1010, 40 * len(records) + 45) as surface:
-    # Context variables and surface coordinates setup
-    surface_x = MARGIN
-    surface_y = MARGIN
-    context = cairo.Context(surface)
-    # Make legend colors and text
-    context.set_font_size(FONT_SIZE)
-    context.select_font_face(FONT_FACE)
-    for motif in motifs:
-        # draw color box
-        context.set_line_width(1)
-        context.set_source_rgb(motif.color[0]/255, motif.color[1]/255, motif.color[2]/255)
-        context.rectangle(surface_x, surface_y, FONT_SIZE, FONT_SIZE)
-        context.fill()
-        # draw text
-        context.set_line_width(1)
-        context.set_source_rgb(0,0,0)
-        context.move_to(surface_x + FONT_SIZE * 2, surface_y + FONT_SIZE/1.1) # x,y
-        context.show_text(motif.motif)
+    # Find motifs in each record
+    testrecord = records[0]
+    testmotif = motifs[0]
+
+    # total surface should be space for the motif legend and space for each record
+    motiflegend_space = int(len(motifs) * (FONT_SIZE*2 + SPACING/2))
+    features_space = int(len(records) * (FONT_SIZE + DRAW_HEIGHT + MARGIN + SPACING))
+    totalsurface_y = motiflegend_space + features_space
+
+    # Draw features
+    with cairo.PDFSurface(f"{outfile}.pdf", 1010, totalsurface_y) as surface:
+        # Context variables and surface coordinates setup
+        surface_x = MARGIN
+        surface_y = MARGIN
+        context = cairo.Context(surface)
+        # Make legend colors and text
+        context.set_font_size(FONT_SIZE)
+        context.select_font_face(FONT_FACE)
+        for motif in motifs:
+            # draw color box for motif
+            context.set_line_width(1)
+            context.set_source_rgb(motif.color[0]/255, motif.color[1]/255, motif.color[2]/255)
+            context.rectangle(surface_x, surface_y, FONT_SIZE, FONT_SIZE)
+            context.fill()
+            # draw text for motif
+            context.set_line_width(1)
+            context.set_source_rgb(0,0,0)
+            context.move_to(surface_x + FONT_SIZE * 2, surface_y + FONT_SIZE/1.1) # x,y
+            context.show_text(motif.motif)
+            context.stroke()
+            surface_y += FONT_SIZE + SPACING/2
+        # Make legend box
+        context.rectangle(MARGIN/1.5, MARGIN/2, 100, surface_y - FONT_SIZE)
         context.stroke()
-        surface_y += FONT_SIZE + SPACING/2
-    # Make legend box
-    context.rectangle(MARGIN/1.5, MARGIN/2, 100, surface_y - FONT_SIZE)
-    context.stroke()
-    # Add spacing
-    surface_y += SPACING
-    # Draw genes
-    for feature in records:
-        feature.draw_features(surface, surface_x, surface_y)
-        surface_y += FONT_SIZE + DRAW_HEIGHT + MARGIN + SPACING
+        # Add spacing
+        surface_y += SPACING
+        # Draw genes
+        for feature in records:
+            feature.draw_features(surface, surface_x, surface_y)
+            surface_y += FONT_SIZE + DRAW_HEIGHT + MARGIN + SPACING
 
+
+if __name__ == "__main__":
+    main()
 
     
 
