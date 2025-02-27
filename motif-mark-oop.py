@@ -38,7 +38,7 @@ distinct_colors = {
 MARGIN = 10
 SPACING = 10
 DRAW_HEIGHT = 10
-FONT_SIZE = 5
+FONT_SIZE = 10
 FONT_FACE = "Arial"
 OVERLAP = 0
 
@@ -331,6 +331,7 @@ def main() -> None:
             context.stroke()
             surface_y += FONT_SIZE + SPACING/2
         # Make legend box
+        surface_y += SPACING/2
         context.rectangle(MARGIN/1.5, MARGIN/2, 100, surface_y - FONT_SIZE)
         context.stroke()
         # Add spacing
