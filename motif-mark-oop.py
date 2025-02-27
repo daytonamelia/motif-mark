@@ -19,25 +19,25 @@ ambig_nts = {
     "N": "(A|T|C|G)"}
 
 distinct_colors = {
-    "Maroon": (128,0,0),
-    "Brown": (170,110,40),
-    "Teal": (0,128,128),
-    "Navy": (0,0,128),
-    "Red": (230,25,75),
-    "Orange": (245,130,48),
-    "Yellow": (255,255,25),
-    "Green": (60,180,75),
-    "Cyan": (70,240,240),
-    "Blue": (0,130,200),
-    "Magenta": (240,50,230),
-    "Grey": (128,128,128),
-    "Pink": (250,190,212),
-    "Mint": (170,255,195),
-    "Lavender": (220,190,255)}
+    "Maroon": [128,0,0],
+    "Brown": [170,110,40],
+    "Teal": [0,128,128],
+    "Navy": [0,0,128],
+    "Red": [230,25,75],
+    "Orange": [245,130,48],
+    "Yellow": [255,255,25],
+    "Green": [60,180,75],
+    "Cyan": [70,240,240],
+    "Blue": [0,130,200],
+    "Magenta": [240,50,230],
+    "Grey": [128,128,128],
+    "Pink": [250,190,212],
+    "Mint": [170,255,195],
+    "Lavender": [220,190,255]}
 
 MARGIN = 10
 SPACING = 10
-DRAW_HEIGHT = 5
+DRAW_HEIGHT = 10
 FONT_SIZE = 5
 FONT_FACE = "Arial"
 
@@ -76,7 +76,7 @@ def fasta_parser(infile:str) -> list:
 def motif_parser(infile:str) -> list:
     '''Given a motif file of one motif per line, return a list of Motif objects.'''
     motif_list = []
-    colors = ["Yellow", "Blue", "Orange", "Maroon", "Lavender", "Navy"]
+    colors = ["Blue", "Orange", "Maroon", "Lavender", "Navy"]
     with open(infile, "r") as rf:
         for i, line in enumerate(rf):
             line = line.strip("\n")
@@ -216,7 +216,7 @@ class Motif:
         self.motif = motif
         self.length = len(motif)
         self.regex = motif_regex(motif)
-        self.color = color
+        self.color = distinct_colors[color]
 
     def __str__(self) -> str:
         '''Print magic method'''
@@ -235,20 +235,27 @@ records = fasta_parser(args.file)
 motifs = motif_parser(args.motifs)
 
 # Draw features
-with cairo.PDFSurface("motif-mark.pdf", 1010, 150) as surface:
+with cairo.PDFSurface("motif-mark.pdf", 1010, 40 * len(records) + 35) as surface:
     # Context variables and surface coordinates setup
     surface_x = MARGIN
     surface_y = MARGIN
     context = cairo.Context(surface)
-    context.set_line_width(1)
-    # Make legend text
+    # Make legend colors and text
     context.set_font_size(FONT_SIZE)
     context.select_font_face(FONT_FACE)
     for motif in motifs:
-        context.move_to(surface_x, surface_y) # x,y
+        # draw color box
+        context.set_line_width(1)
+        context.set_source_rgb(motif.color[0]/255, motif.color[1]/255, motif.color[2]/255)
+        context.rectangle(surface_x, surface_y, FONT_SIZE, FONT_SIZE)
+        context.fill()
+        # draw text
+        context.set_line_width(1)
+        context.set_source_rgb(0,0,0)
+        context.move_to(surface_x + FONT_SIZE * 2, surface_y + FONT_SIZE/1.1) # x,y
         context.show_text(motif.motif)
         context.stroke()
-        surface_y += FONT_SIZE
+        surface_y += FONT_SIZE + SPACING/2
     # Make legend box
     context.rectangle(MARGIN/1.5, MARGIN/2, 100, surface_y - FONT_SIZE)
     context.stroke()
