@@ -1,3 +1,5 @@
 # motif-mark
-Usage:
+
+## Usage:
+
 `motif-mark-oop.py [-h] -f FASTA -m MOTIF`
