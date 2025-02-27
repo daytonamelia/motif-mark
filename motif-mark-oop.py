@@ -18,6 +18,23 @@ ambig_nts = {
     "V": "[^T]",
     "N": "(A|T|C|G)"}
 
+distinct_colors = {
+    "Maroon": (128,0,0),
+    "Brown": (170,110,40),
+    "Teal": (0,128,128),
+    "Navy": (0,0,128),
+    "Red": (230,25,75),
+    "Orange": (245,130,48),
+    "Yellow": (255,255,25),
+    "Green": (60,180,75),
+    "Cyan": (70,240,240),
+    "Blue": (0,130,200),
+    "Magenta": (240,50,230),
+    "Grey": (128,128,128),
+    "Pink": (250,190,212),
+    "Mint": (170,255,195),
+    "Lavender": (220,190,255)}
+
 MARGIN = 10
 SPACING = 10
 DRAW_HEIGHT = 5
@@ -59,10 +76,11 @@ def fasta_parser(infile:str) -> list:
 def motif_parser(infile:str) -> list:
     '''Given a motif file of one motif per line, return a list of Motif objects.'''
     motif_list = []
+    colors = ["Yellow", "Blue", "Orange", "Maroon", "Lavender", "Navy"]
     with open(infile, "r") as rf:
-        for line in rf:
+        for i, line in enumerate(rf):
             line = line.strip("\n")
-            motif = Motif(line)
+            motif = Motif(line, colors[i])
             motif_list.append(motif)
     return motif_list
 
@@ -127,6 +145,7 @@ class Gene:
     def __init__(self, index, seq) -> None:
         '''Pass an index (fasta header or name) and a sequence that is split into a list of Feature objects based on capitalization of the sequence.'''
         self.index = index
+        self.seq = seq
         self.length = int(len(seq))
         self.features = gene_splitter(seq)
     
@@ -143,7 +162,7 @@ class Gene:
         return len(self.features)
 
     def draw_features(self, surface: cairo.Surface, surface_x: int, surface_y: int):
-        '''Given a top-left point, draws a rectangle and line.'''
+        '''Given a top-left point, writes the index, then draws a rectangle and line.'''
         # Context and variables
         context = cairo.Context(surface)
         context.set_line_width(1)
@@ -170,7 +189,7 @@ class Gene:
 
 
 class Feature:
-    '''A Feature object. A feature is either an exon (exon == True) or an intron (exon == False).'''
+    '''A Feature object. A feature is either an exon (exon == True) or an intron (exon == False) that might include motifs.'''
     def __init__(self, seq, exon) -> None:
         self.seq = seq
         self.revcomp = revcomp(seq)
@@ -191,34 +210,50 @@ class Feature:
 
 
 class Motif:
-    '''A Motif object.'''
-    def __init__(self, motif) -> None:
+    '''A Motif object, with a motif, a regex pattern, and a color for drawing.'''
+    def __init__(self, motif, color) -> None:
         '''From passing the motif string, finds attributes length and regex.'''
         self.motif = motif
         self.length = len(motif)
         self.regex = motif_regex(motif)
+        self.color = color
 
     def __str__(self) -> str:
         '''Print magic method'''
-        return f"{self.motif} with pattern {self.regex}"
+        return self.motif
 
     def __len__(self) -> int:
         '''Length magic method.'''
         return self.length
 
+        self.color = color
 
+
+# Set up and parsing
 args = get_args()
 records = fasta_parser(args.file)
 motifs = motif_parser(args.motifs)
 
-testfeature = records[0]
-
-
 # Draw features
 with cairo.PDFSurface("motif-mark.pdf", 1010, 150) as surface:
-    # 
+    # Context variables and surface coordinates setup
     surface_x = MARGIN
     surface_y = MARGIN
+    context = cairo.Context(surface)
+    context.set_line_width(1)
+    # Make legend text
+    context.set_font_size(FONT_SIZE)
+    context.select_font_face(FONT_FACE)
+    for motif in motifs:
+        context.move_to(surface_x, surface_y) # x,y
+        context.show_text(motif.motif)
+        context.stroke()
+        surface_y += FONT_SIZE
+    # Make legend box
+    context.rectangle(MARGIN/1.5, MARGIN/2, 100, surface_y - FONT_SIZE)
+    context.stroke()
+    # Add spacing
+    surface_y += SPACING
     # Draw genes
     for feature in records:
         feature.draw_features(surface, surface_x, surface_y)
