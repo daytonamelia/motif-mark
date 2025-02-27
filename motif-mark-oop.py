@@ -111,31 +111,33 @@ def gene_splitter(read: str) -> list:
     '''Given a read of exons and introns, splits into a list of features based on capitalization patterns.'''
     # look into re.split for capitals split
     features = []
-    working_intron = ''
-    working_exon = ''
+    intron_len = 0
+    exon_len = 0
+    switch_pos = 0
     caps = read[0].isupper()
     for i, char in enumerate(read):
-        # if the character has become upper when the previous was lower, add working_intron to features
+        switch_pos += 1
+        # if the character has become upper when the previous was lower, add intron to features
         if char.isupper() and caps == False:
-            features.append(Feature(working_intron, False))
-            working_intron = ''
+            features.append(Feature(switch_pos, intron_len, False))
+            intron_len = 0
             caps = True
-        # if the character has become lower when the previous was upper, add working_exon to features
+        # if the CHARACter has become lower when the previous was upper, add exon to features
         elif char.islower() and caps == True:
-            features.append(Feature(working_exon, True))
-            working_exon = ''
+            features.append(Feature(switch_pos, exon_len, True))
+            exon_len = 0
             caps = False
         # Exon
         if caps:
-            working_exon += char
+            exon_len += 1
         # Intron
         else:
-            working_intron += char
+            intron_len += 1
     # add last exon/intron
-    if working_intron == '':
-        features.append(Feature(working_exon, True))
+    if intron_len == 0:
+        features.append(Feature(switch_pos, exon_len, True))
     else:
-        features.append(Feature(working_intron, False))
+        features.append(Feature(switch_pos, intron_len, False))
     return features
 
 def motif_finder(read:str, motif) -> dict:
@@ -146,10 +148,12 @@ def motif_finder(read:str, motif) -> dict:
 
 # CLASSES
 class Gene:
-    '''A Gene object. A gene has an index, Features (introns and exons), Motifs, and a length of the total gene.'''
+    '''A Gene object. A gene has an index, sequence and reverse complement, Features (introns and exons), Motifs, and a length of the total gene.'''
     def __init__(self, index, seq) -> None:
         '''Pass an index (fasta header or name) and a sequence that is split into a list of Feature objects based on capitalization of the sequence.'''
         self.index = index
+        self.seq = seq
+        self.revcomp = revcomp(seq)
         self.length = int(len(seq))
         self.features = gene_splitter(seq)
     
@@ -193,16 +197,14 @@ class Gene:
 
 
 class Feature:
-    '''A Feature object. A feature is either an exon (exon == True) or an intron (exon == False) that might include motifs.'''
-    def __init__(self, seq, exon) -> None:
-        self.seq = seq
-        self.revcomp = revcomp(seq)
-        self.length = int(len(seq))
+    '''A Feature object. A feature is either an exon (exon == True) or an intron (exon == False) with a length and start position.'''
+    def __init__(self, start, length, exon) -> None:
+        self.start = start
+        self.length = length
         self.exon = exon
-    
+
     def __str__(self) -> str:
-        '''Print magic method.'''
-        return self.seq
+        return str(self.start)
 
     def __len__(self) -> int:
         '''Length magic method.'''
@@ -239,6 +241,11 @@ def main() -> None:
     records = fasta_parser(args.file)
     motifs = motif_parser(args.motifs)
     outfile = args.file.split(".")[0]
+
+    # for record in records:
+    #     print(record)
+    #     for feature in record.features:
+    #         print(feature)
 
     # Find motifs in each record
     testrecord = records[0]
