@@ -253,11 +253,12 @@ def main() -> None:
     outfile = args.file.split(".")[0]
 
     # Find motifs in each record
-    for motif in motifs:
-        for record in records:
+    for record in records:
+        for motif in motifs:
             found_motifs = motif_finder(record, motif)
             if found_motifs is not None:
                 record.add_motifs(found_motifs)
+        
 
     # total surface should be space for the motif legend and space for each record
     motiflegend_space = int(len(motifs) * (FONT_SIZE*2 + SPACING/2))
