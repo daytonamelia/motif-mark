@@ -7,10 +7,10 @@ A tool for locating and visualizing splicing motifs on sequences. See usage for 
 `motif-mark-oop.py [-h] -f FASTA -m MOTIF`
 
 FASTA file with max 10 sequences and ≤1000 bases per sequence.
-Motifs file with one motif per line in a text file and <≤10 bases per motif. Bases must comply with [IUPAC]("https://genome.ucsc.edu/goldenPath/help/iupac.html").
+Motifs file with one motif per line in a text file and <≤10 bases per motif. Bases must comply with [IUPAC naming conventions](https://genome.ucsc.edu/goldenPath/help/iupac.html).
 
 ## Requirements
-[Pycairo v.1.27.0]("https://github.com/pygobject/pycairo")
+[Pycairo v.1.27.0](https://github.com/pygobject/pycairo)
 
 ## Example Output
 Example here
