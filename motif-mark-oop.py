@@ -186,8 +186,8 @@ class Gene:
                     overlaps.append(((pos1,motif),(pos2,motif2)))
         self.overlaps = overlaps
         
-    def draw_features(self, surface: cairo.Surface, surface_x: int, surface_y: int) -> None:
-        '''Given a top-left point, writes the index, then draws a rectangle and line.'''
+    def draw(self, surface: cairo.Surface, surface_x: int, surface_y: int) -> None:
+        '''Given a top-left point, writes the index, then draws features and motifs'''
         # Context and variables
         context = cairo.Context(surface)
         context.set_line_width(1)
@@ -211,6 +211,24 @@ class Gene:
                 context.line_to(curr_x + len(feature), curr_y + DRAW_HEIGHT) #x,y
                 context.stroke()
                 curr_x += len(feature)
+        # Draw motifs
+        curr_x = surface_x
+        for position, motif in self.motifs.items():
+            print('---')
+            print(position, motif)
+            print(self.overlaps)
+            if self.overlaps == []:
+                print("NO OVERLAPS")
+            for overlap in self.overlaps:
+                # Overlap
+                if position == overlap[0][0] or position == overlap[1][0]:
+                    print("OVERLAP")
+                    print(position)
+                # Not overlap
+                else:
+                    print("NO OVERLAP")
+                    print(position)
+                    
 
 class Feature:
     '''A Feature object. A feature is either an exon (exon == True) or an intron (exon == False) with a length and start position.'''
@@ -248,6 +266,7 @@ class Motif:
         return self.length
 
 
+# MAIN
 def main() -> None:
     # Set up and parsing
     args = get_args()
@@ -297,18 +316,14 @@ def main() -> None:
         context.stroke()
         # Add spacing
         surface_y += SPACING
-        # Draw genes
+        # Draw features and motifs
         for feature in records:
-            feature.draw_features(surface, surface_x, surface_y)
+            print('\n')
+            print('feature')
+            feature.draw(surface, surface_x, surface_y)
             surface_y += FONT_SIZE + DRAW_HEIGHT + MARGIN + SPACING
-        # Draw motifs
 
 
 if __name__ == "__main__":
     main()
-
-    
-
-
-
 
