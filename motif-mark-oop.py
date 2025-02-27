@@ -40,6 +40,7 @@ SPACING = 10
 DRAW_HEIGHT = 10
 FONT_SIZE = 5
 FONT_FACE = "Arial"
+OVERLAP = 5
 
 # ARGUMENT/FILE PARSERS
 def get_args():
@@ -176,14 +177,23 @@ class Gene:
     def find_overlap(self) -> None:
         '''Finds overlapping motifs for simplifying drawing.'''
         overlaps = []
+        first_positions = []
         for pos1, motif in self.motifs.items():
             for pos2, motif2 in self.motifs.items():
                 # exact same
                 if pos1 == pos2 and motif == motif2:
                     continue
+                # already added this overlap
+                if pos2 in first_positions:
+                    continue
                 # actual overlap
-                if pos1 <= pos2 and pos2 <= pos1 + motif.length:
+                if pos1 <= pos2 and pos2 <= pos1+motif.length:
                     overlaps.append(((pos1,motif),(pos2,motif2)))
+                    first_positions.append(pos1)
+                # overlap margin for nicer plots
+                elif pos1-OVERLAP <= pos2 and pos2 <= pos1+motif.length+OVERLAP:
+                    overlaps.append(((pos1,motif),(pos2,motif2)))
+                    first_positions.append(pos1)
         self.overlaps = overlaps
         
     def draw(self, surface: cairo.Surface, surface_x: int, surface_y: int) -> None:
@@ -202,6 +212,7 @@ class Gene:
         curr_y += FONT_SIZE
         # Draw the features
         for feature in self.features:
+            context.set_source_rgb(0,0,0)
             if feature.is_exon(): # draw exons 
                 context.rectangle(curr_x, curr_y, len(feature), DRAW_HEIGHT * 2) # x,y,width,height
                 context.fill()
@@ -212,22 +223,19 @@ class Gene:
                 context.stroke()
                 curr_x += len(feature)
         # Draw motifs
-        curr_x = surface_x
+        print(self.overlaps)
         for position, motif in self.motifs.items():
-            print('---')
-            print(position, motif)
-            print(self.overlaps)
-            if self.overlaps == []:
-                print("NO OVERLAPS")
-            for overlap in self.overlaps:
-                # Overlap
-                if position == overlap[0][0] or position == overlap[1][0]:
-                    print("OVERLAP")
-                    print(position)
-                # Not overlap
-                else:
-                    print("NO OVERLAP")
-                    print(position)
+            overlapped = False
+            # If gene has motif overlaps, check for them
+            if self.overlaps != []:
+                for overlap in self.overlaps:
+                    if position == overlap[0][0] or position == overlap[1][0]:
+                        overlapped = True
+                        break
+            if not overlapped:
+                context.set_source_rgb(motif.color[0]/255, motif.color[1]/255, motif.color[2]/255)
+                context.rectangle(position+surface_x, curr_y, motif.length, DRAW_HEIGHT-0.5)
+                context.fill()
                     
 
 class Feature:
@@ -319,7 +327,7 @@ def main() -> None:
         # Draw features and motifs
         for feature in records:
             print('\n')
-            print('feature')
+            print(feature)
             feature.draw(surface, surface_x, surface_y)
             surface_y += FONT_SIZE + DRAW_HEIGHT + MARGIN + SPACING
 
