@@ -35,10 +35,10 @@ distinct_colors = {
     "Mint": [170,255,195],
     "Lavender": [220,190,255]}
 
-MARGIN = 10
-SPACING = 10
-DRAW_HEIGHT = 10
-FONT_SIZE = 10
+MARGIN = 10*2
+SPACING = 10*2
+DRAW_HEIGHT = 10*2
+FONT_SIZE = 10*2
 FONT_FACE = "Arial"
 OVERLAP = 0
 
@@ -304,7 +304,7 @@ def main() -> None:
     totalsurface_y = motiflegend_space + features_space
 
     # Draw features
-    with cairo.SVGSurface(f"{outfile}.svg", 1010, totalsurface_y) as surface:
+    with cairo.ImageSurface(cairo.FORMAT_ARGB32, 1010, totalsurface_y) as surface:
         # Context variables and surface coordinates setup
         surface_x = MARGIN
         surface_y = MARGIN
@@ -332,7 +332,7 @@ def main() -> None:
             surface_y += FONT_SIZE + SPACING/2
         # Make legend box
         surface_y += SPACING/2
-        context.rectangle(MARGIN/1.5, MARGIN/2, 100, surface_y - FONT_SIZE)
+        context.rectangle(MARGIN/1.5, MARGIN/2, 250, surface_y - FONT_SIZE)
         context.stroke()
         # Add spacing
         surface_y += SPACING
