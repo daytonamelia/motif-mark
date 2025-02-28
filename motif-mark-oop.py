@@ -304,7 +304,7 @@ def main() -> None:
     totalsurface_y = motiflegend_space + features_space
 
     # Draw features
-    with cairo.ImageSurface(cairo.FORMAT_ARGB32, 1010, totalsurface_y) as surface:
+    with cairo.SVGSurface(f"{outfile}.svg", 1010, totalsurface_y) as surface:
         # Context variables and surface coordinates setup
         surface_x = MARGIN
         surface_y = MARGIN
