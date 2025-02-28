@@ -14,4 +14,4 @@ A tool for locating and visualizing splicing motifs on sequences. Outputs an ann
 [Pycairo v.1.27.0](https://github.com/pygobject/pycairo)
 
 ## Example Output
-!(Figure_1.png)
+![Example output png](./Figure_1.png)
