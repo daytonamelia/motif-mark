@@ -15,3 +15,5 @@ A tool for locating and visualizing splicing motifs on sequences. Outputs an ann
 
 ## Example Output
 ![Example output png](./Figure_1.png)
+
+Example output created with `Figure_1.fasta` and `Fig_1_motifs.txt` files.
