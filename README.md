@@ -4,7 +4,7 @@ A tool for locating and visualizing splicing motifs on sequences. Outputs an ann
 
 ## Usage:
 
-`motif-mark-oop.py [-h] -f FASTA -m MOTIF`
+`motif-mark-oop.py [-h] -f <FASTA> -m <MOTIF>`
 
 `-f` : FASTA file with max 10 sequences and ≤1000 bases per sequence.
 
